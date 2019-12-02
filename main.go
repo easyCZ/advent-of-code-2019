@@ -2,18 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 )
 
-var solutions = map[int]func() error {
+var solutions = map[int]func() error{
+	1: day1,
 }
 
 func main() {
 	var day int
 
 	cmd := cobra.Command{
-		Use:                        "advent-of-code-2019",
+		Use: "advent-of-code-2019",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			if day < 1 || day > 25 {
