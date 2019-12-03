@@ -9,6 +9,7 @@ import (
 var solutions = map[int]func() error{
 	1: day1,
 	2: day2,
+	3: day3,
 }
 
 func main() {
