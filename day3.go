@@ -97,7 +97,7 @@ func NewPath(s string) Path {
 	case 'R':
 		return Path{direction: Right, units: int(units)}
 	default:
-		panic("Unknown path")
+		panic("UnknownOpcode path")
 	}
 }
 
