@@ -22,12 +22,12 @@ func day1() error {
 
 		needed := fuelForModule(int(module))
 		fuelNeeded += needed
-		extraFuel +=  fuelForFuel(needed)
+		extraFuel += fuelForFuel(needed)
 	}
 
 	fmt.Println(fmt.Sprintf("Solution: %d", fuelNeeded))
 	fmt.Println(fmt.Sprintf("Extra fuel: %d", extraFuel))
-	fmt.Println(fmt.Sprintf("Total: %d", fuelNeeded + extraFuel))
+	fmt.Println(fmt.Sprintf("Total: %d", fuelNeeded+extraFuel))
 	return nil
 }
 

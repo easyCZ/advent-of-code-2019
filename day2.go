@@ -85,7 +85,7 @@ func step(program []int, opIndex int) []int {
 	return program
 }
 
-func exec(program [] int) []int {
+func exec(program []int) []int {
 	opIndex := 0
 	for program[opIndex] != 99 {
 		program = step(program, opIndex)
@@ -94,4 +94,3 @@ func exec(program [] int) []int {
 
 	return program
 }
-
