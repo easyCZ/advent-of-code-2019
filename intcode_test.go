@@ -9,14 +9,14 @@ func TestIntcodeReadStore(t *testing.T) {
 	i, err := NewIntcode("3,0,4,0,99")
 	assert.NoError(t, err)
 	out := i.Exec("5\n")
-	assert.Equal(t, []int{0, 5}, out)
+	assert.Equal(t, []int{5}, out)
 }
 
 func TestIncodeModes(t *testing.T) {
 	i, err := NewIntcode("1002,4,3,4,33")
 	assert.NoError(t, err)
 	_ = i.Exec("")
-	assert.Equal(t, []int{}, i.memory)
+	assert.Equal(t, []int{1002, 4, 3, 4, 99}, i.memory)
 }
 
 func TestIncodeNegative(t *testing.T) {

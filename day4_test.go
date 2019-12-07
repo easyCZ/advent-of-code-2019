@@ -6,7 +6,7 @@ import (
 )
 
 func TestCandidate(t *testing.T) {
-	assert.Equal(t, true, isCandidate(111111))
+	assert.Equal(t, false, isCandidate(111111))
 	assert.Equal(t, false, isCandidate(223450))
 	assert.Equal(t, false, isCandidate(123789))
 }
