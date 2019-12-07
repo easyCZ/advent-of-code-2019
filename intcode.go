@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	"github.com/pkg/errors"
 	"strconv"
@@ -32,6 +30,17 @@ type Output int
 type Intcode struct {
 	memory []int
 	cursor int
+	input  []int
+}
+
+func (i *Intcode) readInput() (int, error) {
+	if len(i.input) > 0 {
+		val := i.input[0]
+		i.input = i.input[1:]
+		return val, nil
+	}
+
+	return 0, errors.New("no input available")
 }
 
 func (i *Intcode) val(param Param) int {
@@ -45,7 +54,7 @@ func (i *Intcode) val(param Param) int {
 	}
 }
 
-func (i *Intcode) Step(instruction Instruction, input string) *Output {
+func (i *Intcode) Step(instruction Instruction) *Output {
 	switch instruction.opcode {
 	case AddOpcode:
 
@@ -68,18 +77,12 @@ func (i *Intcode) Step(instruction Instruction, input string) *Output {
 		return nil
 	case StoreOpcode:
 		target := instruction.params[0].val
-		reader := bufio.NewReader(bytes.NewBufferString(input))
-		cmdString, err := reader.ReadString('\n')
-		if err != nil {
-			panic("failed to read stdin")
-		}
 
-		parsed, err := strconv.ParseInt(strings.TrimSpace(cmdString), 10, 32)
+		input, err := i.readInput()
 		if err != nil {
-			panic("failed to parse stdin")
+			panic(err)
 		}
-
-		i.memory[target] = int(parsed)
+		i.memory[target] = input
 		i.Advance(instruction)
 		return nil
 	case OutputOpcode:
@@ -181,7 +184,7 @@ func (i *Intcode) CurrentInstruction() Instruction {
 	}
 }
 
-func (i *Intcode) Exec(input string) []int {
+func (i *Intcode) Exec() []int {
 	var out []int
 
 	for {
@@ -190,14 +193,14 @@ func (i *Intcode) Exec(input string) []int {
 			return out
 		}
 
-		step := i.Step(instruction, input)
+		step := i.Step(instruction)
 		if step != nil {
 			out = append(out, int(*step))
 		}
 	}
 }
 
-func NewIntcode(s string) (*Intcode, error) {
+func NewIntcode(s string, input []int) (*Intcode, error) {
 	var vals []int
 	tokens := strings.Split(s, ",")
 	for _, token := range tokens {
@@ -212,6 +215,7 @@ func NewIntcode(s string) (*Intcode, error) {
 	return &Intcode{
 		memory: vals,
 		cursor: 0,
+		input:  input,
 	}, nil
 }
 

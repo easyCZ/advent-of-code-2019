@@ -13,7 +13,7 @@ func day2() error {
 	if err != nil {
 		return err
 	}
-	intcode, err := NewIntcode(strings.TrimSpace(cmdString))
+	intcode, err := NewIntcode(strings.TrimSpace(cmdString), nil)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func day2() error {
 		programAlarm[1] = 12
 		programAlarm[2] = 2
 		p := Intcode{memory: programAlarm}
-		mem := p.Exec("")
+		mem := p.Exec()
 		fmt.Println(fmt.Sprintf("Solution 1: %d", mem[0]))
 	}
 	{
@@ -46,7 +46,7 @@ func findVal(program []int) (int, int) {
 			p2[2] = j
 
 			p := Intcode{memory: p2}
-			mem := p.Exec("")
+			mem := p.Exec()
 
 			if mem[0] == 19690720 {
 				return i, j
