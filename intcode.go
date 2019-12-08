@@ -31,6 +31,7 @@ type Intcode struct {
 	memory []int
 	cursor int
 	input  []int
+	halted bool
 }
 
 func (i *Intcode) readInput() (int, error) {
@@ -136,6 +137,7 @@ func (i *Intcode) Step(instruction Instruction) *Output {
 		i.Advance(instruction)
 		return nil
 	case HaltOpcdoe:
+		i.halted = true
 		i.Advance(instruction)
 		return nil
 	default:
@@ -147,6 +149,10 @@ func (i *Intcode) Step(instruction Instruction) *Output {
 
 func (i *Intcode) Advance(ins Instruction) {
 	i.cursor += ins.opcode.length
+}
+
+func (i *Intcode) AddInput(val int) {
+	i.input = append(i.input, val)
 }
 
 func (i *Intcode) CurrentInstruction() Instruction {
@@ -184,12 +190,12 @@ func (i *Intcode) CurrentInstruction() Instruction {
 	}
 }
 
-func (i *Intcode) Exec() []int {
+func (i *Intcode) ExecUntil(opcode Opcode) []int {
 	var out []int
 
 	for {
 		instruction := i.CurrentInstruction()
-		if instruction.opcode == HaltOpcdoe {
+		if instruction.opcode == opcode || instruction.opcode == HaltOpcdoe {
 			return out
 		}
 
@@ -198,6 +204,10 @@ func (i *Intcode) Exec() []int {
 			out = append(out, int(*step))
 		}
 	}
+}
+
+func (i *Intcode) Exec() []int {
+	return i.ExecUntil(HaltOpcdoe)
 }
 
 func NewIntcode(s string, input []int) (*Intcode, error) {
