@@ -30,8 +30,8 @@ func day7() error {
 	return nil
 }
 
-func maxThrust(program string) (int, error) {
-	var outputs []int
+func maxThrust(program string) (int64, error) {
+	var outputs []int64
 	for i := 0; i < 5; i++ {
 		for j := 0; j < 5; j++ {
 			for k := 0; k < 5; k++ {
@@ -51,19 +51,19 @@ func maxThrust(program string) (int, error) {
 							amplifiers = append(amplifiers, intcode)
 						}
 
-						amplifiers[0].input = []int{i, 0}
+						amplifiers[0].input = []int64{int64(i), 0}
 						out0 := amplifiers[0].Exec()
 
-						amplifiers[1].input = []int{j, out0[0]}
+						amplifiers[1].input = []int64{int64(j), int64(out0[0])}
 						out1 := amplifiers[1].Exec()
 
-						amplifiers[2].input = []int{k, out1[0]}
+						amplifiers[2].input = []int64{int64(k), int64(out1[0])}
 						out2 := amplifiers[2].Exec()
 
-						amplifiers[3].input = []int{l, out2[0]}
+						amplifiers[3].input = []int64{int64(l), int64(out2[0])}
 						out3 := amplifiers[3].Exec()
 
-						amplifiers[4].input = []int{m, out3[0]}
+						amplifiers[4].input = []int64{int64(m), int64(out3[0])}
 						out4 := amplifiers[4].Exec()
 
 						outputs = append(outputs, out4...)
@@ -76,8 +76,8 @@ func maxThrust(program string) (int, error) {
 	return max(outputs), nil
 }
 
-func maxThrustersWithFeedback(program string) (int, error) {
-	var outputs []int
+func maxThrustersWithFeedback(program string) (int64, error) {
+	var outputs []int64
 	for i := 4; i < 10; i++ {
 		for j := 4; j < 10; j++ {
 			for k := 4; k < 10; k++ {
@@ -97,24 +97,24 @@ func maxThrustersWithFeedback(program string) (int, error) {
 							amplifiers = append(amplifiers, intcode)
 						}
 
-						amplifiers[0].input = []int{i}
-						amplifiers[1].input = []int{j}
-						amplifiers[2].input = []int{k}
-						amplifiers[3].input = []int{l}
-						amplifiers[4].input = []int{m}
+						amplifiers[0].input = []int64{int64(i)}
+						amplifiers[1].input = []int64{int64(j)}
+						amplifiers[2].input = []int64{int64(k)}
+						amplifiers[3].input = []int64{int64(l)}
+						amplifiers[4].input = []int64{int64(m)}
 
 						for _, amplifier := range amplifiers {
 							amplifier.ExecUntil(StoreOpcode)
 						}
 
-						lastOutput := 0
+						var lastOutput int64
 						index := 0
 						for !amplifiers[4].halted {
 							amplifiers[index].AddInput(lastOutput)
 							amplifiers[index].ExecUntil(OutputOpcode)
 							out := amplifiers[index].Step(amplifiers[index].CurrentInstruction())
 							if out != nil {
-								lastOutput = int(*out)
+								lastOutput = int64(*out)
 							}
 
 							index = (index + 1) % 5
@@ -130,8 +130,8 @@ func maxThrustersWithFeedback(program string) (int, error) {
 	return max(outputs), nil
 }
 
-func max(vals []int) int {
-	m := math.MinInt32
+func max(vals []int64) int64 {
+	m := int64(math.MinInt64)
 	for _, val := range vals {
 		if val > m {
 			m = val

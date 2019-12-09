@@ -22,19 +22,43 @@ var (
 	JumpIfFalseOpcode = Opcode{id: 6, length: 3}
 	LessThanOpcode    = Opcode{id: 7, length: 4}
 	EqualsOpcode      = Opcode{id: 8, length: 4}
+	SetRelBaseOpcode  = Opcode{id: 9, length: 2}
 	HaltOpcdoe        = Opcode{id: 99, length: 1}
 )
 
-type Output int
-
-type Intcode struct {
-	memory []int
-	cursor int
-	input  []int
-	halted bool
+type Memory struct {
+	m map[int64]int64
 }
 
-func (i *Intcode) readInput() (int, error) {
+func (m *Memory) Set(loc int64, val int64) {
+	if loc < 0 {
+		panic(fmt.Sprintf("Attempted to set negative memroy: %d", loc))
+	}
+	m.m[loc] = val
+}
+
+func (m *Memory) Get(loc int64) int64 {
+	if loc < 0 {
+		panic(fmt.Sprintf("Requested negative memroy: %d", loc))
+	}
+	if val, ok := m.m[loc]; ok {
+		return val
+	}
+
+	return 0
+}
+
+type Output int64
+
+type Intcode struct {
+	memory  Memory
+	cursor  int64
+	input   []int64
+	halted  bool
+	relBase int64
+}
+
+func (i *Intcode) readInput() (int64, error) {
 	if len(i.input) > 0 {
 		val := i.input[0]
 		i.input = i.input[1:]
@@ -44,12 +68,12 @@ func (i *Intcode) readInput() (int, error) {
 	return 0, errors.New("no input available")
 }
 
-func (i *Intcode) val(param Param) int {
+func (i *Intcode) val(param Param) int64 {
 	switch param.mode {
 	case ImmediateMode:
 		return param.val
 	case PositionMode:
-		return i.memory[param.val]
+		return i.memory.Get(param.val)
 	default:
 		panic(fmt.Sprintf("Unknown mode encountered: %v", param.mode))
 	}
@@ -64,7 +88,7 @@ func (i *Intcode) Step(instruction Instruction) *Output {
 		target := instruction.params[2].val
 
 		sum := left + right
-		i.memory[target] = sum
+		i.memory.Set(target, sum)
 		i.Advance(instruction)
 		return nil
 	case MultiplyOpcode:
@@ -73,7 +97,7 @@ func (i *Intcode) Step(instruction Instruction) *Output {
 		target := instruction.params[2].val
 
 		product := left * right
-		i.memory[target] = product
+		i.memory.Set(target, product)
 		i.Advance(instruction)
 		return nil
 	case StoreOpcode:
@@ -83,7 +107,7 @@ func (i *Intcode) Step(instruction Instruction) *Output {
 		if err != nil {
 			panic(err)
 		}
-		i.memory[target] = input
+		i.memory.Set(target, input)
 		i.Advance(instruction)
 		return nil
 	case OutputOpcode:
@@ -118,9 +142,9 @@ func (i *Intcode) Step(instruction Instruction) *Output {
 		target := instruction.params[2].val
 
 		if left < right {
-			i.memory[target] = 1
+			i.memory.Set(target, 1)
 		} else {
-			i.memory[target] = 0
+			i.memory.Set(target, 0)
 		}
 		i.Advance(instruction)
 		return nil
@@ -130,16 +154,24 @@ func (i *Intcode) Step(instruction Instruction) *Output {
 		right := i.val(instruction.params[1])
 		target := instruction.params[2].val
 		if left == right {
-			i.memory[target] = 1
+			i.memory.Set(target, 1)
 		} else {
-			i.memory[target] = 0
+			i.memory.Set(target, 0)
 		}
 		i.Advance(instruction)
 		return nil
+
+	case SetRelBaseOpcode:
+		left := instruction.params[0]
+		i.relBase += left.val
+		i.Advance(instruction)
+		return nil
+
 	case HaltOpcdoe:
 		i.halted = true
 		i.Advance(instruction)
 		return nil
+
 	default:
 		panic(fmt.Sprintf("unknown instruction %v encountered", instruction))
 	}
@@ -148,15 +180,15 @@ func (i *Intcode) Step(instruction Instruction) *Output {
 }
 
 func (i *Intcode) Advance(ins Instruction) {
-	i.cursor += ins.opcode.length
+	i.cursor += int64(ins.opcode.length)
 }
 
-func (i *Intcode) AddInput(val int) {
+func (i *Intcode) AddInput(val int64) {
 	i.input = append(i.input, val)
 }
 
 func (i *Intcode) CurrentInstruction() Instruction {
-	s := fmt.Sprintf("%d", i.memory[i.cursor])
+	s := fmt.Sprintf("%d", i.memory.Get(i.cursor))
 	for k := len(s); k < 5; k++ {
 		s = "0" + s
 	}
@@ -167,19 +199,19 @@ func (i *Intcode) CurrentInstruction() Instruction {
 
 	if opcode.length >= 2 {
 		params = append(params, Param{
-			val:  i.memory[i.cursor+1],
+			val:  i.memory.Get(i.cursor + 1),
 			mode: parseMode(string(s[2])),
 		})
 	}
 	if opcode.length >= 3 {
 		params = append(params, Param{
-			val:  i.memory[i.cursor+2],
+			val:  i.memory.Get(i.cursor + 2),
 			mode: parseMode(string(s[1])),
 		})
 	}
 	if opcode.length >= 4 {
 		params = append(params, Param{
-			val:  i.memory[i.cursor+3],
+			val:  i.memory.Get(i.cursor + 3),
 			mode: parseMode(string(s[0])),
 		})
 	}
@@ -190,8 +222,8 @@ func (i *Intcode) CurrentInstruction() Instruction {
 	}
 }
 
-func (i *Intcode) ExecUntil(opcode Opcode) []int {
-	var out []int
+func (i *Intcode) ExecUntil(opcode Opcode) []int64 {
+	var out []int64
 
 	for {
 		instruction := i.CurrentInstruction()
@@ -201,32 +233,40 @@ func (i *Intcode) ExecUntil(opcode Opcode) []int {
 
 		step := i.Step(instruction)
 		if step != nil {
-			out = append(out, int(*step))
+			out = append(out, int64(*step))
 		}
 	}
 }
 
-func (i *Intcode) Exec() []int {
+func (i *Intcode) Exec() []int64 {
 	return i.ExecUntil(HaltOpcdoe)
 }
 
-func NewIntcode(s string, input []int) (*Intcode, error) {
-	var vals []int
+func NewIntcode(s string, input []int64) (*Intcode, error) {
+	var vals []int64
 	tokens := strings.Split(s, ",")
 	for _, token := range tokens {
-		i, err := strconv.ParseInt(token, 10, 32)
+		i, err := strconv.ParseInt(token, 10, 64)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to parse entry %v", token))
 		}
 
-		vals = append(vals, int(i))
+		vals = append(vals, int64(i))
 	}
 
 	return &Intcode{
-		memory: vals,
+		memory: NewMemory(vals),
 		cursor: 0,
 		input:  input,
 	}, nil
+}
+
+func NewMemory(vals []int64) Memory {
+	mem := Memory{m: map[int64]int64{}}
+	for loc, val := range vals {
+		mem.Set(int64(loc), val)
+	}
+	return mem
 }
 
 type Mode int
@@ -234,10 +274,11 @@ type Mode int
 const (
 	PositionMode  Mode = 0
 	ImmediateMode Mode = 1
+	RelativeMode  Mode = 2
 )
 
 type Param struct {
-	val  int
+	val  int64
 	mode Mode
 }
 
@@ -268,6 +309,8 @@ func parseOpcode(s string) Opcode {
 		return LessThanOpcode
 	case "08":
 		return EqualsOpcode
+	case "09":
+		return SetRelBaseOpcode
 	case "99":
 		return HaltOpcdoe
 	default:
@@ -281,6 +324,8 @@ func parseMode(s string) Mode {
 		return PositionMode
 	case "1":
 		return ImmediateMode
+	case "2":
+		return RelativeMode
 	default:
 		panic(fmt.Sprintf("UnknownOpcode mode: %v", s))
 	}
