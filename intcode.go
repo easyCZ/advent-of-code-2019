@@ -74,6 +74,8 @@ func (i *Intcode) val(param Param) int64 {
 		return param.val
 	case PositionMode:
 		return i.memory.Get(param.val)
+	case RelativeMode:
+		return i.memory.Get(i.relBase + param.val)
 	default:
 		panic(fmt.Sprintf("Unknown mode encountered: %v", param.mode))
 	}
@@ -162,8 +164,8 @@ func (i *Intcode) Step(instruction Instruction) *Output {
 		return nil
 
 	case SetRelBaseOpcode:
-		left := instruction.params[0]
-		i.relBase += left.val
+		left := i.val(instruction.params[0])
+		i.relBase += left
 		i.Advance(instruction)
 		return nil
 

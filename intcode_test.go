@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -114,4 +115,39 @@ func TestComparisons(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, scenario.out, i.Exec())
 	}
+}
+
+func TestIntcodeRelative(t *testing.T) {
+	intcode, err := NewIntcode("109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99", nil)
+	assert.NoError(t, err)
+
+	out := intcode.Exec()
+	assert.Equal(t, []int64{109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99}, out)
+}
+
+func TestIntcodeBigNumber(t *testing.T) {
+	intcode, err := NewIntcode("104,1125899906842624,99", nil)
+	assert.NoError(t, err)
+
+	out := intcode.Exec()
+	assert.Equal(t, []int64{1125899906842624}, out)
+}
+
+func TestIntCode16digit(t *testing.T) {
+	intcode, err := NewIntcode("1102,34915192,34915192,7,4,7,99,0", nil)
+	assert.NoError(t, err)
+
+	out := intcode.Exec()
+	assert.Equal(t, 16, len(fmt.Sprintf("%d", out[0])))
+}
+
+func TestIntCodeRelative2(t *testing.T) {
+	intcode, err := NewIntcode("109,19,204,-34,99", nil)
+	assert.NoError(t, err)
+	intcode.memory.Set(1985, 11)
+	intcode.relBase = 2000
+
+
+	out := intcode.Exec()
+	assert.Equal(t, []int64{11}, out)
 }
